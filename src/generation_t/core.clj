@@ -45,18 +45,12 @@
       (.setPixels ^WritableRaster raster 0 0 width height (int-array pixel-vec))
       image)))
 
+;; width and height are desired dimensions of resultant image -- the return val
+;; of this function is a 1D vector of size (* height width num-channels)
 (defn- random-vec [width height]
   (-> (* width height)
       (take (repeatedly (partial rand-nth palette)))
       flatten))
-
-(defn- random-vec-2d [width height]
-  (vec
-    (for [i (range height)]
-      (-> width
-          (take (repeatedly (partial rand-nth palette)))
-          flatten
-          vec))))
 
 (defn- random-img [width height]
   (-> (random-vec width height)
@@ -92,16 +86,27 @@
 
 (def vecwhite (white-vec px-width px-height))
 
-(save-img "vec0" (scale-up (vec->image (flatten (random-vec-2d 50 50)))))
+(save-img "vec0" (scale-up (vec->image vec0)))
 
-(save-img "vecblack" (scale-up (vec->image (flatten (vec (map vec (partition 50 vecblack)))))))
+(save-img "vec1" (scale-up (vec->image vec1)))
 
-(let [n 5]
-  (save-img (str "patched-" n) (scale-up (vec->image (flatten (crossover-2 n
-                                                                           50
-                                                                           50
-                                                                    (vec (map vec (partition (* 3 50) vecblack)))
-                                                                    (vec (map vec (partition (* 3 50) vecwhite)))))))))
+(save-img "vecblack" (scale-up (vec->image vecblack)))
+
+(save-img "vecwhite" (scale-up (vec->image vecwhite)))
+
+(let [n 5
+      progeny (patch-crossover n
+                               (* px-width num-channels)
+                               vecblack
+                               vecwhite)]
+  (save-img (str "patched-" n) (scale-up (vec->image progeny))))
+
+(let [n 5
+      progeny (patch-crossover n
+                               (* px-width num-channels)
+                               vec0
+                               vec1)]
+  (save-img (str "progeny-patched-" n) (scale-up (vec->image progeny))))
 
 ;; like k-point crossover, but instead of k points, (randomly) crossover after
 ;; runs of length n
@@ -114,20 +119,19 @@
          (nth parent0-partitioned i)
          (nth parent1-partitioned i))))))
 
+;; get the coords of n patches that evenly cover a width x height 2D array,
+;; taking num-channels into account
+;; e.g.
+;;
+;; an image that is 2x2 will have a width of 6 (2 pixels * 3 color channels)
+;;
+;; (patches 1 6 2)
+;;
+;; (([0 0] [0 1] [0 2])  ;; first patch is nw pixel
+;;  ([0 3] [0 4] [0 5])  ;; second patch is ne pixel
+;;  ([1 0] [1 1] [1 2])  ;; third patch is sw pixel
+;;  ([1 3] [1 4] [1 5])) ;; fourth patch is se pixel
 (defn- patches [n width height]
-  ;; get the coords of n patches that evenly cover a width x height 2D array,
-  ;; taking num-channels into account
-  ;; e.g.
-  ;;
-  ;; an image that is 2x2 will have a width of 6 (2 pixels * 3 color channels)
-  ;;
-  ;; (patches 1 6 2)
-  ;;
-  ;; (([0 0] [0 1] [0 2])  ;; first patch is nw pixel
-  ;;  ([0 3] [0 4] [0 5])  ;; second patch is ne pixel
-  ;;  ([1 0] [1 1] [1 2])  ;; third patch is sw pixel
-  ;;  ([1 3] [1 4] [1 5])) ;; fourth patch is se pixel
-
   (let [partitioned-indices-i (partition n (range height))
         partitioned-indices-j (partition (* n num-channels) (range width))]
     (for [patch-i (range (count partitioned-indices-i))
@@ -139,23 +143,24 @@
 (def patches-memo (memoize patches))
 
 (defn- reshape [flattened-arr width]
-  (vec (map vec (partition (* num-channels width) flattened-arr))))
+  (vec (map vec (partition width flattened-arr))))
 
-(defn- crossover-2 [n width height parent0 parent1]
+(defn- patch-crossover [n width parent0 parent1]
   ;; loop over the image, patch by patch, taking a given patch from either
   ;; parent randomly
   ;; note: vector dimensions ideally are evenly divided by n
+  ;; width param should already be multiplied by num-channels
   (let [parent0-2d (reshape parent0 width)
         parent1-2d (reshape parent1 width)]
     (flatten
      (loop [[patch & rest-patches] (patches-memo n
-                                                 (count (first parent0))
-                                                 (count parent0))
-            img                    parent0]
+                                                 (count (first parent0-2d))
+                                                 (count parent0-2d))
+            img                    parent0-2d]
        (if patch
          (recur
           rest-patches
-          (let [src-img (if (= 0 (rand-int 2)) parent0 parent1)]
+          (let [src-img (if (= 0 (rand-int 2)) parent0-2d parent1-2d)]
             (reduce
              (fn [res-img pixel]
                (->> (get-in src-img pixel)
@@ -165,20 +170,6 @@
          img)))))
 
 (comment
-
-
-
-  (def parent0 (vec (map vec (partition (* num-channels 50) vecblack))))
-  (def parent1 (random-vec-2d 50 50))
-
-  (count (first parent1))
-
-  (count (patches k (count (first parent0)) (count parent0)))
-
-  (patches 10
-           (count (first parent0))
-           (count parent0))
-
 
   (reduce (fn [acc el]
             (println acc)
