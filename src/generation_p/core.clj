@@ -1,4 +1,4 @@
-(ns generation-t.core
+(ns generation-p.core
   (:gen-class)
   (:import
    (java.io File)
@@ -78,36 +78,6 @@
         scale-op (AffineTransformOp. xform AffineTransformOp/TYPE_NEAREST_NEIGHBOR)]
     (.filter scale-op bi after)))
 
-(def vec0 (random-vec px-width px-height))
-
-(def vec1 (random-vec px-width px-height))
-
-(def vecblack (black-vec px-width px-height))
-
-(def vecwhite (white-vec px-width px-height))
-
-(save-img "vec0" (scale-up (vec->image vec0)))
-
-(save-img "vec1" (scale-up (vec->image vec1)))
-
-(save-img "vecblack" (scale-up (vec->image vecblack)))
-
-(save-img "vecwhite" (scale-up (vec->image vecwhite)))
-
-(let [n 5
-      progeny (patch-crossover n
-                               (* px-width num-channels)
-                               vecblack
-                               vecwhite)]
-  (save-img (str "patched-" n) (scale-up (vec->image progeny))))
-
-(let [n 5
-      progeny (patch-crossover n
-                               (* px-width num-channels)
-                               vec0
-                               vec1)]
-  (save-img (str "progeny-patched-" n) (scale-up (vec->image progeny))))
-
 ;; like k-point crossover, but instead of k points, (randomly) crossover after
 ;; runs of length n
 (defn- crossover [n parent0 parent1]
@@ -171,15 +141,35 @@
 
 (comment
 
-  (reduce (fn [acc el]
-            (println acc)
-            (println "----------")
-            (println el)
-            (println "-------------------------")
-            ;; (Thread/sleep 1000)
-            (crossover acc el))
-          (rand-tweet)
-          (repeatedly 60 rand-tweet))
+  (def vec0 (random-vec px-width px-height))
+
+  (def vec1 (random-vec px-width px-height))
+
+  (def vecblack (black-vec px-width px-height))
+
+  (def vecwhite (white-vec px-width px-height))
+
+  (save-img "vec0" (scale-up (vec->image vec0)))
+
+  (save-img "vec1" (scale-up (vec->image vec1)))
+
+  (save-img "vecblack" (scale-up (vec->image vecblack)))
+
+  (save-img "vecwhite" (scale-up (vec->image vecwhite)))
+
+  (let [n 5
+        progeny (patch-crossover n
+                                 (* px-width num-channels)
+                                 vecblack
+                                 vecwhite)]
+    (save-img (str "patched-" n) (scale-up (vec->image progeny))))
+
+  (let [n 5
+        progeny (patch-crossover n
+                                 (* px-width num-channels)
+                                 vec0
+                                 vec1)]
+    (save-img (str "progeny-patched-" n) (scale-up (vec->image progeny))))
 
   )
 
