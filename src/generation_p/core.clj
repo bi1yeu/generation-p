@@ -1,5 +1,6 @@
 (ns generation-p.core
   (:gen-class)
+  (:require [clojure.data.generators :as data.gen])
   (:import
    (java.io File)
    (java.awt.image AffineTransformOp BufferedImage WritableRaster)
@@ -7,24 +8,24 @@
    (javax.imageio ImageIO)))
 
 (def ^:const display-scale-factor 10.0)
-(def ^:const px-width 50)
-(def ^:const px-height 50)
+(def ^:const img-width 50)
+(def ^:const img-height 50)
 (def ^:const num-channels 3)
 
 ;; https://lospec.com/palette-list/japanese-woodblock
 (def ^:const palette--japanesewoodblock
   [[0x2b 0x28 0x21]
-    [0x62 0x4c 0x3c]
-    [0xd9 0xac 0x8b]
-    [0xe3 0xcf 0xb4]
-    [0x24 0x3d 0x5c]
-    [0x5d 0x72 0x75]
-    [0x5c 0x8b 0x93]
-    [0xb1 0xa5 0x8d]
-    [0xb0 0x3a 0x48]
-    [0xd4 0x80 0x4d]
-    [0xe0 0xc8 0x72]
-    [0x3e 0x69 0x58]])
+   [0x62 0x4c 0x3c]
+   [0xd9 0xac 0x8b]
+   [0xe3 0xcf 0xb4]
+   [0x24 0x3d 0x5c]
+   [0x5d 0x72 0x75]
+   [0x5c 0x8b 0x93]
+   [0xb1 0xa5 0x8d]
+   [0xb0 0x3a 0x48]
+   [0xd4 0x80 0x4d]
+   [0xe0 0xc8 0x72]
+   [0x3e 0x69 0x58]])
 
 (def ^:const palette palette--japanesewoodblock)
 
@@ -49,7 +50,7 @@
 ;; of this function is a 1D vector of size (* height width num-channels)
 (defn- random-vec [width height]
   (-> (* width height)
-      (take (repeatedly (partial rand-nth palette)))
+      (take (repeatedly #(apply data.gen/one-of palette)))
       flatten))
 
 (defn- random-img [width height]
@@ -85,7 +86,7 @@
         parent1-partitioned (partition (* n num-channels) parent1)]
     (flatten
      (for [i (range (count parent0-partitioned))]
-       (if (= 0 (rand-int 2))
+       (if (data.gen/boolean)
          (nth parent0-partitioned i)
          (nth parent1-partitioned i))))))
 
@@ -112,16 +113,16 @@
 
 (def patches-memo (memoize patches))
 
-(defn- reshape [flattened-arr width]
+(defn reshape [width flattened-arr]
   (vec (map vec (partition width flattened-arr))))
 
-(defn- patch-crossover [n width parent0 parent1]
+(defn patch-crossover [n width parent0 parent1]
   ;; loop over the image, patch by patch, taking a given patch from either
   ;; parent randomly
   ;; note: vector dimensions ideally are evenly divided by n
   ;; width param should already be multiplied by num-channels
-  (let [parent0-2d (reshape parent0 width)
-        parent1-2d (reshape parent1 width)]
+  (let [parent0-2d (reshape width parent0)
+        parent1-2d (reshape width parent1)]
     (flatten
      (loop [[patch & rest-patches] (patches-memo n
                                                  (count (first parent0-2d))
@@ -130,7 +131,7 @@
        (if patch
          (recur
           rest-patches
-          (let [src-img (if (= 0 (rand-int 2)) parent0-2d parent1-2d)]
+          (let [src-img (if (data.gen/boolean) parent0-2d parent1-2d)]
             (reduce
              (fn [res-img pixel]
                (->> (get-in src-img pixel)
@@ -141,13 +142,19 @@
 
 (comment
 
-  (def vec0 (random-vec px-width px-height))
+  ;; TODO mutations -- evolution is stochastic
+  ;; TODO meta mutations -- mutate mutation parameters, crossover parameters, crossover methods, etc
+  ;; TODO think about generations
+  ;; TODO fitness...
+  ;; TODO start interfacing with social, database
 
-  (def vec1 (random-vec px-width px-height))
+  (def vec0 (random-vec img-width img-height))
 
-  (def vecblack (black-vec px-width px-height))
+  (def vec1 (random-vec img-width img-height))
 
-  (def vecwhite (white-vec px-width px-height))
+  (def vecblack (black-vec img-width img-height))
+
+  (def vecwhite (white-vec img-width img-height))
 
   (save-img "vec0" (scale-up (vec->image vec0)))
 
@@ -157,16 +164,16 @@
 
   (save-img "vecwhite" (scale-up (vec->image vecwhite)))
 
-  (let [n 5
+  (let [n 2
         progeny (patch-crossover n
-                                 (* px-width num-channels)
+                                 (* img-width num-channels)
                                  vecblack
                                  vecwhite)]
     (save-img (str "patched-" n) (scale-up (vec->image progeny))))
 
   (let [n 5
         progeny (patch-crossover n
-                                 (* px-width num-channels)
+                                 (* img-width num-channels)
                                  vec0
                                  vec1)]
     (save-img (str "progeny-patched-" n) (scale-up (vec->image progeny))))
