@@ -103,18 +103,19 @@
 ;;  ([1 0] [1 1] [1 2])  ;; third patch is sw pixel
 ;;  ([1 3] [1 4] [1 5])) ;; fourth patch is se pixel
 (defn- patches [n width height]
-  (let [partitioned-indices-i (partition n (range height))
-        partitioned-indices-j (partition (* n num-channels) (range width))]
-    (for [patch-i (range (count partitioned-indices-i))
-          patch-j (range (count partitioned-indices-j))]
-      (for [i (nth partitioned-indices-i patch-i)
-            j (nth partitioned-indices-j patch-j)]
-        [i j]))))
+  (for [patch-indices-i (partition n (range height))
+        patch-indices-j (partition (* n num-channels) (range width))]
+    (for [i patch-indices-i
+          j patch-indices-j]
+      [i j])))
 
 (def patches-memo (memoize patches))
 
-(defn reshape [width flattened-arr]
-  (vec (map vec (partition width flattened-arr))))
+(defn- reshape [width flattened-arr]
+  (->> flattened-arr
+       (partition width)
+       (map vec)
+       vec))
 
 (defn patch-crossover [n width parent0 parent1]
   ;; loop over the image, patch by patch, taking a given patch from either
