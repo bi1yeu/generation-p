@@ -1,6 +1,7 @@
 (ns generation-p.core
   (:gen-class)
-  (:require [clojure.data.generators :as data.gen])
+  (:require [clojure.data.generators :as data.gen]
+            [generation-p.model :as m])
   (:import
    (java.io File)
    (java.awt.image AffineTransformOp BufferedImage WritableRaster)
@@ -117,6 +118,28 @@
        (map vec)
        vec))
 
+;; TODO refactor
+;; This is a specialized crossover approach, which treats 2D patches of size nxn
+;; as genes in the chromosome/individual. Given two parents, these patches are
+;; randomly exchanged to form a new individual.
+
+;; e.g., if n=1 and each digit in the grid represents a pixel in the image
+
+;; parent0
+;; 0 0 0
+;; 0 0 0
+;; 0 0 0
+
+;; parent1
+;; 1 1 1
+;; 1 1 1
+;; 1 1 1
+
+;; possible child
+;; 0 1 0
+;; 1 1 0
+;; 1 0 1
+
 (defn patch-crossover [n width parent0 parent1]
   ;; loop over the image, patch by patch, taking a given patch from either
   ;; parent randomly
@@ -143,12 +166,6 @@
 
 (comment
 
-  ;; TODO mutations -- evolution is stochastic
-  ;; TODO meta mutations -- mutate mutation parameters, crossover parameters, crossover methods, etc
-  ;; TODO think about generations
-  ;; TODO fitness...
-  ;; TODO start interfacing with social, database
-
   (def vec0 (random-vec img-width img-height))
 
   (def vec1 (random-vec img-width img-height))
@@ -164,6 +181,9 @@
   (save-img "vecblack" (scale-up (vec->image vecblack)))
 
   (save-img "vecwhite" (scale-up (vec->image vecwhite)))
+
+  (dotimes [n 730]
+    (save-img (str "vec-" n) (scale-up (random-img img-width img-height))))
 
   (let [n 2
         progeny (patch-crossover n
@@ -181,56 +201,53 @@
 
   )
 
+;; TODO
+(defn build-individual []
+  {::m/id               (java.util.UUID/randomUUID)
+   ::m/social-id        (data.gen/int) ;; TODO
+   ::m/generation       2
+   ::m/chromosome       vec0
+   ::m/parent0-id       nil
+   ::m/parent1-id       nil
+   ::m/crossover-method "patch-crossover"
+   ::m/crossover-params {:n 5}})
+
 ;; Genetic Algorithm Tweet Bot
-;;
-;; The population is initially seeded with N randomly generated tweets
-;; An individual is represented as a 64x64 RGB image
-;; Uniform crossover https://en.wikipedia.org/wiki/Crossover_(genetic_algorithm)#Uniform_crossover
-;;   - would a k-point crossover produce more interesting output?
-;; Fitness function is based on likes and retweets
-;; TODO mutation?
-;;   - capitalize
-;;   - space/punctuate
-;;   - simply change char
-;;   - mutate crossover rule?
-;;   - mutate hyper parameters?
-;; Tweet twice per day
 ;; solving an opimtization problem: trying to maximize number of impressions
-;;
-;; Each generation, replace 50% of the population
 
-;; Seed `n` individuals without reproducing
-;; e.g. n = 4
-;; gen 0:
-;;   t0 abc 1
-;;   t1 def 3
-;;   t2 ghi 2
-;;   t3 jkl 10
+;; seeding
+;; selection https://en.wikipedia.org/wiki/Selection_(genetic_algorithm)
+;; crossover + mutation
 
-;; then selection https://en.wikipedia.org/wiki/Selection_(genetic_algorithm)
-;; jkl 0.625  1       r == 0.5 <--
-;; def 0.1875 0.375   r == 0.3 <--
-;; ghi 0.125  0.1875
-;; abc 0.0625 0.0625
-
-;; then crossover + mutation
-;; gen 1:
-;;   t4 jkl + def = jei 1
-;;            mut-> jeI
-;;   (selection)
-;;   t5 jkl + def = del 2
-;;   (selection)
-;;   t6 del + def = def ;; speciation heuristic?
-
-;; fitness heurisitc
-;; - if impressions alone form the basis of the fitness heuristic, then older
-;;  tweets would be disproportionately fit due simply to having had more time to
-;;  receive impressions.
-;;  i think it should be something like fitness = a * impressions - b * age
-;;  super old and/or unfit individuals would thus effictively be culled from the
-;;  gene pool due to v low probability of being selected
+;; links
+;; https://en.wikipedia.org/wiki/Genetic_algorithm
+;; https://en.wikipedia.org/wiki/Selection_(genetic_algorithm)
+;; https://en.wikipedia.org/wiki/Interactive_evolutionary_computation
+;; https://en.wikipedia.org/wiki/Evolutionary_art
 
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
+
+  ;; TODO mutations -- evolution is stochastic
+  ;; TODO meta mutations -- mutate mutation parameters, crossover parameters, crossover methods, etc
+  ;; TODO think about generations
+  ;; TODO fitness...
+  ;; TODO start interfacing with social, database
+
+  ;; if number of individuals in current generation is less than the desired
+  ;; generation poulation
+  ;;   if generation is 0
+  ;;     generate random invididual
+  ;;   else
+  ;;     glean fitness of inidividuals in prev generation
+  ;;     produce new individual by stochastically select two parents from the
+  ;;     previous generation, weighted by fitness, and including mutation
+
+  (m/create-individual (build-individual) )
+
+  (def pop (m/read-generation 2))
+
+  (m/latest-generation)
+
   (println "Hello, World!"))
