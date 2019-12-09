@@ -1,6 +1,6 @@
-(ns generation-p.core-test
+(ns generation-p.biology-test
   (:require [clojure.test :refer :all]
-            [generation-p.core :refer :all]
+            [generation-p.biology :refer :all]
             [clojure.data.generators :as data.generators]))
 
 (def ^:const rand-seed 666)
