@@ -5,17 +5,19 @@
 
 (s/def ::id uuid?)
 (s/def ::social-id int?)
-(s/def ::generation int?)
+(s/def ::generation-num int?)
 (s/def ::chromosome (s/coll-of int?))
 (s/def ::parent0-id (s/nilable uuid?))
 (s/def ::parent1-id (s/nilable uuid?))
-(s/def ::crossover-method #{"patch-crossover" "crossover"})
-(s/def ::crossover-params map?)
+(s/def ::patch-crossover "patch-crossover")
+(s/def ::crossover "crossover")
+(s/def ::crossover-method (s/nilable #{::patch-crossover ::crossover}))
+(s/def ::crossover-params (s/nilable map?))
 (s/def ::created-at inst?)
 
 (s/def ::individual (s/keys :req [::id
                                   ::social-id
-                                  ::generation
+                                  ::generation-num
                                   ::chromosome
                                   ::parent0-id
                                   ::parent1-id
@@ -46,16 +48,17 @@
       (->> rdr
            line-seq
            (map clojure.edn/read-string)
-           (filter #(= generation-num (::generation %)))
+           (filter #(= generation-num (::generation-num %)))
            vec))
     []))
 
-(defn latest-generation []
+(defn latest-generation-num []
   {:post [(s/valid? (s/nilable int?) %)]}
-  (when (db-file-exists?)
+  (if (db-file-exists?)
     (with-open [rdr (io/reader db-filename)]
       (-> rdr
           line-seq
           last
           clojure.edn/read-string
-          ::generation))))
+          ::generation-num))
+    0))

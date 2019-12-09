@@ -1,17 +1,19 @@
 (ns generation-p.core
   (:gen-class)
   (:require [clojure.data.generators :as data.gen]
-            [generation-p.model :as m])
+            [generation-p.model :as m]
+            [generation-p.social :as social])
   (:import
    (java.io File)
    (java.awt.image AffineTransformOp BufferedImage WritableRaster)
    (java.awt.geom AffineTransform)
    (javax.imageio ImageIO)))
 
-(def ^:const display-scale-factor 10.0)
-(def ^:const img-width 50)
-(def ^:const img-height 50)
+(def ^:const display-scale-factor 20.0)
+(def ^:const img-width 32)
+(def ^:const img-height 32)
 (def ^:const num-channels 3)
+(def ^:const desired-generation-population-count 3)
 
 ;; https://lospec.com/palette-list/japanese-woodblock
 (def ^:const palette--japanesewoodblock
@@ -49,10 +51,13 @@
 
 ;; width and height are desired dimensions of resultant image -- the return val
 ;; of this function is a 1D vector of size (* height width num-channels)
-(defn- random-vec [width height]
-  (-> (* width height)
-      (take (repeatedly #(apply data.gen/one-of palette)))
-      flatten))
+(defn- random-vec
+  ([]
+   (random-vec img-width img-height))
+  ([width height]
+   (-> (* width height)
+       (take (repeatedly #(apply data.gen/one-of palette)))
+       flatten)))
 
 (defn- random-img [width height]
   (-> (random-vec width height)
@@ -201,16 +206,15 @@
 
   )
 
-;; TODO
-(defn build-individual []
+(defn build-individual [gen-num]
   {::m/id               (java.util.UUID/randomUUID)
-   ::m/social-id        (data.gen/int) ;; TODO
-   ::m/generation       2
-   ::m/chromosome       vec0
+   ::m/social-id        nil
+   ::m/generation-num   gen-num
+   ::m/chromosome       (random-vec)
    ::m/parent0-id       nil
    ::m/parent1-id       nil
-   ::m/crossover-method "patch-crossover"
-   ::m/crossover-params {:n 5}})
+   ::m/crossover-method nil
+   ::m/crossover-params nil})
 
 ;; Genetic Algorithm Tweet Bot
 ;; solving an opimtization problem: trying to maximize number of impressions
@@ -225,12 +229,67 @@
 ;; https://en.wikipedia.org/wiki/Interactive_evolutionary_computation
 ;; https://en.wikipedia.org/wiki/Evolutionary_art
 
+(defn- normalize-fitness [population]
+  (let [fitness-sum (reduce (fn [acc el] (+ (:fitness el) acc))
+                            0
+                            population)]
+    (map #(assoc %
+                 :fitness-norm
+                 (/
+                  (:fitness %)
+                  fitness-sum))
+         population)))
+
+(defn matchmake [population]
+  ;; Fitness proportionate selection
+  ;; Given a population, choose two individuals to reproduce.
+  ;; https://en.wikipedia.org/wiki/Selection_(genetic_algorithm)
+  (let [accumulated-normalized-fitnesses
+        (->> population
+             ;; The fitness function is evaluated for each individual, providing
+             ;; fitness values, which are then normalized.
+             (mapv #(assoc % :fitness (social/get-fitness (::m/social-id %))))
+             normalize-fitness
+             ;; The population is sorted by ascending fitness values.
+             (sort-by :fitness-norm)
+             ;; Accumulated normalized fitness values are computed: the
+             ;; accumulated fitness value of an individual is the sum of its own
+             ;; fitness value plus the fitness values of all the previous
+             ;; individuals
+             (reduce (fn [acc el]
+                       (if (empty? acc)
+                         [(assoc el :acc-fitness-norm (:fitness-norm el))]
+                         (conj acc (assoc el :acc-fitness-norm
+                                          (+ (:fitness-norm el)
+                                             (:acc-fitness-norm (last acc)))))))
+                     []))
+        ;; A random number R between 0 and 1 is chosen
+        ;; The selected individual is the first one whose accumulated normalized
+        ;; value is greater than or equal to R.
+        choose-parent #(->> accumulated-normalized-fitnesses
+                            (filter (fn [indiv]
+                                      (>= (:acc-fitness-norm indiv) (rand))))
+                            first)
+        parent0       (choose-parent)
+        ;; Ensure parent1 is different from parent0. One can't reproduce with
+        ;; oneself, unfortunately.
+        parent1       (loop [p (choose-parent)]
+                        (if (= (:id p) (:id parent0))
+                          (recur (choose-parent))
+                          p))]
+    [parent0 parent1]))
+
+(defn breed [parent0 parent1]
+  ;; nsfw
+  parent0
+  )
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
 
   ;; TODO mutations -- evolution is stochastic
-  ;; TODO meta mutations -- mutate mutation parameters, crossover parameters, crossover methods, etc
+  ;; TODO meta mutations -- mutate mutation parameters: crossover parameters, crossover methods, etc
   ;; TODO think about generations
   ;; TODO fitness...
   ;; TODO start interfacing with social, database
@@ -244,10 +303,18 @@
   ;;     produce new individual by stochastically select two parents from the
   ;;     previous generation, weighted by fitness, and including mutation
 
-  (m/create-individual (build-individual) )
+  (let [latest-gen-num (m/latest-generation-num)
+        latest-gen     (m/read-generation latest-gen-num)
+        curr-gen-num   (if (< (count latest-gen) desired-generation-population-count)
+                         latest-gen-num
+                         (inc latest-gen-num))
+        prev-gen       (m/read-generation (dec curr-gen-num))]
+    (if (= 0 curr-gen-num)
+      (let [new-individual (build-individual curr-gen-num)
+            social-id      (social/debut new-individual)]
+        (m/create-individual (assoc new-individual ::m/social-id social-id)))
+      (let [prev-gen          (m/read-generation (dec curr-gen-num))
+            [parent0 parent1] (matchmake prev-gen)
+            new-individual    (breed parent0 parent1)])))
 
-  (def pop (m/read-generation 2))
-
-  (m/latest-generation)
-
-  (println "Hello, World!"))
+  )
