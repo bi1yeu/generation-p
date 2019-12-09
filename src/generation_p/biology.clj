@@ -5,6 +5,7 @@
             [generation-p.image :as image]))
 
 (def ^:const desired-generation-population-count 3)
+(def ^:const crossover-mutation-rate 0.05)
 
 ;; width and height are desired dimensions of resultant image -- the return val
 ;; of this function is a 1D vector of size (* height width num-channels)
@@ -16,10 +17,10 @@
        (take (repeatedly #(apply data.gen/one-of image/palette)))
        flatten)))
 
-(defn spawn-random-individual [gen-num]
+(defn spawn-random-individual []
   {::m/id               (java.util.UUID/randomUUID)
    ::m/social-id        nil
-   ::m/generation-num   gen-num
+   ::m/generation-num   0
    ::m/chromosome       (random-chromosome)
    ::m/parent0-id       nil
    ::m/parent1-id       nil
@@ -95,7 +96,7 @@
 
 ;; like k-point crossover, but instead of k points, (randomly) crossover after
 ;; runs of length n
-(defn- crossover [n parent0 parent1]
+(defn- crossover [{:keys [n]} parent0 parent1]
   (let [parent0-partitioned (partition (* n image/num-channels) parent0)
         parent1-partitioned (partition (* n image/num-channels) parent1)]
     (flatten
@@ -153,12 +154,12 @@
 ;; 1 1 0
 ;; 1 0 1
 
-(defn patch-crossover [n width parent0 parent1]
+(defn patch-crossover [{:keys [n]} parent0 parent1]
   ;; loop over the image, patch by patch, taking a given patch from either
   ;; parent randomly
   ;; note: vector dimensions ideally are evenly divided by n
-  ;; width param should already be multiplied by image/num-channels
-  (let [parent0-2d (reshape width parent0)
+  (let [width (* image/img-width image/num-channels)
+        parent0-2d (reshape width parent0)
         parent1-2d (reshape width parent1)]
     (flatten
      (loop [[patch & rest-patches] (patches-memo n
@@ -177,18 +178,50 @@
              patch)))
          img)))))
 
+(defn- random-crossover-method []
+  (data.gen/one-of ::m/crossover ::m/patch-crossover))
+
+(defn- random-crossover-params [crossover-method]
+  (case crossover-method
+    ::m/crossover
+    {:n (apply data.gen/one-of (range 1
+                                      (inc (/ (* image/img-width image/img-height)
+                                              2))))}
+    ::m/patch-crossover
+    {:n (let [half-width (/ image/img-width 2)]
+          (->> (range 1 (inc half-width))
+               (map (partial / 16))
+               (map float)
+               (filter #(zero? (mod half-width %)))
+               (map int)
+               (apply data.gen/one-of)))}))
+
+(defn- crossover-method->fn [crossover-method crossover-params]
+  (case crossover-method
+    ::m/crossover
+    (partial crossover crossover-params)
+
+    ::m/patch-crossover
+    (partial patch-crossover crossover-params)))
+
 (defn breed [parent0 parent1]
-  (def parent0 parent0)
-  (def parent1 parent1)
   ;; nsfw
-
-  (image/save-individual-as-image parent0)
-  (image/save-individual-as-image parent1)
-
-  (image/save-individual-as-image
-   {::m/id "new"
-    ::m/chromosome
-    ;; (crossover 2 (::m/chromosome parent0) (::m/chromosome parent1))})
-    (patch-crossover 16 (* image/img-width image/num-channels) (::m/chromosome parent0) (::m/chromosome parent1))})
-
-  )
+  (let [crossover-parent  (data.gen/one-of parent0 parent1)
+        mutate-crossover? (< (data.gen/float) crossover-mutation-rate)
+        crossover-method  (or
+                           (and (not mutate-crossover?)
+                                (::m/crossover-method crossover-parent))
+                           (random-crossover-method))
+        crossover-params  (or
+                           (and (not mutate-crossover?)
+                                (::m/crossover-params crossover-parent))
+                           (random-crossover-params crossover-method))
+        crossover-fn      (crossover-method->fn crossover-method crossover-params)]
+    (merge (spawn-random-individual)
+           {::m/generation-num (inc (::m/generation-num parent0))
+            ::m/chromosome (crossover-fn (::m/chromosome parent0)
+                                         (::m/chromosome parent1))
+            ::m/parent0-id (::m/id parent0)
+            ::m/parent1-id (::m/id parent1)
+            ::m/crossover-method crossover-method
+            ::m/crossover-params crossover-params})))

@@ -29,7 +29,6 @@
 (def ^:const palette palette--japanesewoodblock)
 
 (comment
-
   ;; some utility functions used for experimentation
 
   (defn- solid-gray-vec [width height val]
