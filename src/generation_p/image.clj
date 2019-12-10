@@ -7,8 +7,8 @@
    (javax.imageio ImageIO)))
 
 (def ^:const display-scale-factor 20.0)
+;; images are square
 (def ^:const img-width 32)
-(def ^:const img-height 32)
 (def ^:const num-channels 3)
 
 ;; https://lospec.com/palette-list/japanese-woodblock
@@ -60,10 +60,9 @@
    ;; assume square image
    (let [dim (-> pixel-vec
                  count
-                 (/ 3)
+                 (/ num-channels)
                  Math/sqrt
                  int)]
-     (def dim dim)
      (vec->image pixel-vec dim dim)))
   ([pixel-vec width height]
    ;; via https://stackoverflow.com/a/125013/1181141

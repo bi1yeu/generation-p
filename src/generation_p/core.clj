@@ -23,19 +23,30 @@
   ;; TODO fitness...
   ;; TODO start interfacing with social, database
 
-  (let [latest-gen-num (m/latest-generation-num)
-        latest-gen     (m/read-generation latest-gen-num)
-        curr-gen-num   (if (< (count latest-gen) bio/desired-generation-population-count)
-                         latest-gen-num
-                         (inc latest-gen-num))]
-    (if (= 0 curr-gen-num)
-      (let [new-individual (bio/spawn-random-individual)
-            social-id      (social/debut new-individual)]
-        (m/create-individual (assoc new-individual ::m/social-id social-id)))
-      (let [prev-gen          (m/read-generation (dec curr-gen-num))
-            [parent0 parent1] (bio/matchmake prev-gen)
-            new-individual    (bio/breed parent0 parent1)]
-        ;; TODO persist new individual
-        )))
+  (dotimes [n 1000]
+    (let [latest-gen-num (m/latest-generation-num)
+          latest-gen     (m/read-generation latest-gen-num)
+          curr-gen-num   (if (< (count latest-gen) bio/desired-generation-population-count)
+                           latest-gen-num
+                           (inc latest-gen-num))]
+      (if (= 0 curr-gen-num)
+        (let [new-individual (bio/spawn-random-individual)
+              social-id      (social/debut new-individual)]
+          (m/create-individual (assoc new-individual ::m/social-id social-id)))
+        (let [prev-gen          (m/read-generation (dec curr-gen-num))
+              [parent0 parent1] (bio/matchmake prev-gen)
+              new-individual    (bio/breed parent0 parent1)
+              social-id         (social/debut new-individual)]
+          (generation-p.image/save-individual-as-image new-individual)
+          (m/create-individual (assoc new-individual ::m/social-id social-id))
+          ))))
+
+  )
+
+(comment
+
+  (let [gen (m/read-generation 30)]
+    (count gen)
+    )
 
   )

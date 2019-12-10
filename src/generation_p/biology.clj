@@ -4,6 +4,7 @@
             [generation-p.social :as social]
             [generation-p.image :as image]))
 
+;; TODO
 (def ^:const desired-generation-population-count 3)
 (def ^:const crossover-mutation-rate 0.05)
 
@@ -11,9 +12,10 @@
 ;; of this function is a 1D vector of size (* height width num-channels)
 (defn- random-chromosome
   ([]
-   (random-chromosome image/img-width image/img-height))
-  ([width height]
-   (-> (* width height)
+   (random-chromosome image/img-width))
+  ([width]
+   (-> width
+       (Math/pow 2)
        (take (repeatedly #(apply data.gen/one-of image/palette)))
        flatten)))
 
@@ -67,7 +69,7 @@
         (->> population
              ;; The fitness function is evaluated for each individual, providing
              ;; fitness values, which are then normalized.
-             (mapv #(assoc % :fitness (social/get-fitness (::m/social-id %))))
+             (mapv #(assoc % :fitness (social/get-fitness %)))
              normalize-fitness
              ;; The population is sorted by ascending fitness values.
              (sort-by :norm-fitness)
@@ -154,11 +156,18 @@
 ;; 1 1 0
 ;; 1 0 1
 
-(defn patch-crossover [{:keys [n]} parent0 parent1]
-  ;; loop over the image, patch by patch, taking a given patch from either
-  ;; parent randomly
+(defn patch-crossover
+  [{:keys [n]} parent0 parent1]
+  ;; loop over the reshaped vector, patch by patch, taking a given patch from
+  ;; either parent randomly
   ;; note: vector dimensions ideally are evenly divided by n
-  (let [width (* image/img-width image/num-channels)
+  ;; note2: assumes square image
+  (let [width      (-> parent0
+                       count
+                       (/ image/num-channels)
+                       Math/sqrt
+                       (* image/num-channels)
+                       int)
         parent0-2d (reshape width parent0)
         parent1-2d (reshape width parent1)]
     (flatten
@@ -169,7 +178,7 @@
        (if patch
          (recur
           rest-patches
-          (let [src-img (if (data.gen/boolean) parent0-2d parent1-2d)]
+          (let [src-img (data.gen/one-of parent0-2d parent1-2d)]
             (reduce
              (fn [res-img pixel]
                (->> (get-in src-img pixel)
@@ -181,19 +190,23 @@
 (defn- random-crossover-method []
   (data.gen/one-of ::m/crossover ::m/patch-crossover))
 
+;; TODO general refactoring
 (defn- random-crossover-params [crossover-method]
   (case crossover-method
     ::m/crossover
-    {:n (apply data.gen/one-of (range 1
-                                      (inc (/ (* image/img-width image/img-height)
-                                              2))))}
+    ;; TODO memoize this
+    {:n (let [vec-width      (-> image/img-width
+                                 (Math/pow 2)
+                                 int)
+              half-vec-width (int (/ vec-width 2))]
+          (->> (range 1 (inc half-vec-width))
+               (filter #(zero? (mod vec-width %)))
+               (apply data.gen/one-of)))}
     ::m/patch-crossover
+    ;; TODO memoize this
     {:n (let [half-width (/ image/img-width 2)]
           (->> (range 1 (inc half-width))
-               (map (partial / 16))
-               (map float)
-               (filter #(zero? (mod half-width %)))
-               (map int)
+               (filter #(zero? (mod image/img-width %)))
                (apply data.gen/one-of)))}))
 
 (defn- crossover-method->fn [crossover-method crossover-params]

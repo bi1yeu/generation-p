@@ -1,11 +1,13 @@
-(ns generation-p.social)
+(ns generation-p.social
+  (:require [generation-p.model :as m]))
 
 (defn debut [individual]
   ;; TODO
   ;; post to social and return social-id
   (rand-int 100000))
 
-(defn get-fitness [social-id]
+(defn get-fitness [individual]
   ;; TODO
   ;; get fitness proxy from previously-debuted social post
-  (rand-int 5000))
+  (/ (apply + (::m/chromosome individual))
+     (count (::m/chromosome individual))))
