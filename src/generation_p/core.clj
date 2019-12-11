@@ -19,7 +19,7 @@
 
   ;; TODO mutations -- evolution is stochastic
   ;; TODO convergence?
-  ;; TODO program perf?
+  ;; TODO program perf? sprinkle some pmaps around idk
   ;; TODO fitness...
   ;; TODO start interfacing with social
 

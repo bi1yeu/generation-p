@@ -74,6 +74,27 @@
       (as-> <> (jdbc/insert! db :species <>)))
   individual)
 
+(defn- munge-from-db [individual-record]
+  {:post [(s/valid? ::individual %)]}
+  ;; this is kinda gross
+  (-> individual-record
+      (dissoc :created_at)
+      field-names->ns-keywords
+      (update ::id (fn [v] (java.util.UUID/fromString v)))
+      (update ::parent0-id (fn [v] (when v (java.util.UUID/fromString v))))
+      (update ::parent1-id (fn [v] (when v (java.util.UUID/fromString v))))
+      (update ::chromosome read-string)
+      (update ::crossover-method (fnil read-string "nil"))
+      (update ::crossover-params (fnil read-string "nil"))))
+
+(defn get-individual-by-id [individual-id]
+  {:pre  [(s/valid? ::id individual-id)]
+   :post [(s/valid? ::individual %)]}
+  (-> (jdbc/query db ["SELECT * FROM species WHERE id = ?"
+                      individual-id])
+      first
+      munge-from-db))
+
 (defn get-generation [generation-num]
   {:pre  [(s/valid? int? generation-num)]
    :post [(s/valid? (s/coll-of ::individual :kind vector?) %)]}
@@ -81,10 +102,7 @@
    (jdbc/query db
                ["SELECT * FROM species WHERE generation_num = ?"
                 generation-num])
-   (map #(dissoc % :created_at)) ;; this is just for bookkeeping
-   (map field-names->ns-keywords)
-   (map #(update % ::id (fn [v] (java.util.UUID/fromString v))))
-   (map #(update % ::chromosome read-string))
+   (map munge-from-db)
    vec))
 
 (defn latest-generation-num []
