@@ -18,22 +18,27 @@
   [& args]
 
   ;; TODO mutations -- evolution is stochastic
-  ;; TODO meta mutations -- mutate mutation parameters: crossover parameters, crossover methods, etc
-  ;; TODO think about generations
+  ;; TODO convergence?
+  ;; TODO program perf?
   ;; TODO fitness...
-  ;; TODO start interfacing with social, database
+  ;; TODO start interfacing with social
 
-  (dotimes [n 1000]
-    (let [latest-gen-num (m/latest-generation-num)
-          latest-gen     (m/read-generation latest-gen-num)
-          curr-gen-num   (if (< (count latest-gen) bio/desired-generation-population-count)
-                           latest-gen-num
-                           (inc latest-gen-num))]
+  (m/create-db)
+
+  (dotimes [n (* bio/desired-generation-population-count 100)]
+    (let [latest-gen-num   (m/latest-generation-num)
+          curr-gen-num     (if (< (m/latest-generation-count)
+                                  bio/desired-generation-population-count)
+                             latest-gen-num
+                             (inc latest-gen-num))]
       (if (= 0 curr-gen-num)
         (let [new-individual (bio/spawn-random-individual)
               social-id      (social/debut new-individual)]
           (m/create-individual (assoc new-individual ::m/social-id social-id)))
-        (let [prev-gen          (m/read-generation (dec curr-gen-num))
+        (let [prev-gen          (m/get-generation (dec curr-gen-num))
+              ;; TODO could probably save some work if we defer fetching
+              ;; chromosome vecs from the db until such point as we actually,
+              ;; you know, need them for breeding.
               [parent0 parent1] (bio/matchmake prev-gen)
               new-individual    (bio/breed parent0 parent1)
               social-id         (social/debut new-individual)]
@@ -45,8 +50,26 @@
 
 (comment
 
-  (let [gen (m/read-generation 30)]
+  (time (bio/spawn-random-individual))
+  ;; 0.15 msecs
+
+  (def rando (bio/spawn-random-individual))
+
+  (time
+   (dotimes [n 1000]
+     (m/latest-generation-num)
+     (let [rando (bio/spawn-random-individual)]
+       (m/create-individual (assoc rando ::m/social-id 123)))))
+  ;; 62k seconds
+
+  (time (m/create-individual (assoc rando ::m/social-id 123)))
+  ;; 30 msecs
+
+  (let [gen (m/get-generation 30)]
     (count gen)
     )
+
+  (m/latest-generation-count)
+  (m/create-db)
 
   )

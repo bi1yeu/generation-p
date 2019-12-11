@@ -6,6 +6,9 @@
   :dependencies [
                  [org.clojure/clojure "1.10.0"]
                  [org.clojure/data.generators "0.1.2"]
+                 [org.xerial/sqlite-jdbc "3.28.0"]
+                 [org.clojure/java.jdbc "0.7.10"]
+
                  ]
   :main ^:skip-aot generation-p.core
   :target-path "target/%s"
