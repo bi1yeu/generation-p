@@ -1,5 +1,6 @@
 (ns generation-p.model
   (:require [clojure.java.jdbc :as jdbc]
+            [clojure.edn :as edn]
             [clojure.spec.alpha :as s]))
 
 (s/def ::id uuid?)
@@ -83,9 +84,9 @@
       (update ::id (fn [v] (java.util.UUID/fromString v)))
       (update ::parent0-id (fn [v] (when v (java.util.UUID/fromString v))))
       (update ::parent1-id (fn [v] (when v (java.util.UUID/fromString v))))
-      (update ::chromosome read-string)
-      (update ::crossover-method (fnil read-string "nil"))
-      (update ::crossover-params (fnil read-string "nil"))))
+      (update ::chromosome edn/read-string)
+      (update ::crossover-method edn/read-string)
+      (update ::crossover-params edn/read-string)))
 
 (defn get-individual-by-id [individual-id]
   {:pre  [(s/valid? ::id individual-id)]
