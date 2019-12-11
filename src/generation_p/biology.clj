@@ -37,12 +37,12 @@
   (let [fitness-sum (reduce (fn [acc el] (+ (:fitness el) acc))
                             0
                             population)]
-    (map #(assoc %
-                 :norm-fitness
-                 (/
-                  (:fitness %)
-                  fitness-sum))
-         population)))
+    (pmap #(assoc %
+                  :norm-fitness
+                  (/
+                   (:fitness %)
+                   fitness-sum))
+          population)))
 
 (defn- accumulate-normalized-fitnesses [population]
   (reduce (fn [acc el]
@@ -131,7 +131,7 @@
 (defn- reshape [width flattened-arr]
   (->> flattened-arr
        (partition width)
-       (map vec)
+       (pmap vec)
        vec))
 
 ;; TODO refactor

@@ -103,7 +103,7 @@
    (jdbc/query db
                ["SELECT * FROM species WHERE generation_num = ?"
                 generation-num])
-   (map munge-from-db)
+   (pmap munge-from-db)
    vec))
 
 (defn latest-generation-num []
