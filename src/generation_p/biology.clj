@@ -4,9 +4,8 @@
             [generation-p.social :as social]
             [generation-p.image :as image]))
 
-;; TODO
-(def ^:const desired-generation-population-count 3)
-(def ^:const crossover-mutation-rate 0.05)
+(def ^:const desired-generation-population-count 60)
+(def ^:const crossover-mutation-rate 0.02)
 
 ;; width and height are desired dimensions of resultant image -- the return val
 ;; of this function is a 1D vector of size (* height width num-channels)
@@ -54,12 +53,15 @@
           []
           population))
 
-(defn- choose-parent-from-population [population]
-  ;; individuals in `population` should already have an accumulated normalized
-  ;; fitness
-  (->> population
-       (filter #(>= (:acc-norm-fitness %) (rand)))
-       first))
+(defn- choose-parent-from-population
+  ([population]
+   (choose-parent-from-population population (data.gen/float)))
+  ([population cutoff]
+   ;; individuals in `population` should already have an accumulated normalized
+   ;; fitness and be sorted in ascending order
+   (->> population
+        (filter #(>= (:acc-norm-fitness %) cutoff))
+        first)))
 
 (defn matchmake [population]
   ;; Fitness proportionate selection

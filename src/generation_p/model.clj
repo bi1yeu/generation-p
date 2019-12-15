@@ -96,6 +96,26 @@
       first
       munge-from-db))
 
+
+;; some utility functions for experimentation
+(defn get-oldest-individual []
+  {:post [(s/valid? ::individual %)]}
+  (-> (jdbc/query db ["SELECT * FROM species ORDER BY created_at ASC LIMIT 1"])
+      first
+      munge-from-db))
+
+(defn get-youngest-individual []
+  {:post [(s/valid? ::individual %)]}
+  (-> (jdbc/query db ["SELECT * FROM species ORDER BY created_at DESC LIMIT 1"])
+      first
+      munge-from-db))
+
+(defn get-all-individuals []
+  {:post [(s/valid? (s/coll-of ::individual :kind vector?) %)]}
+  (->> (jdbc/query db ["SELECT * FROM species ORDER BY created_at ASC"])
+       (map munge-from-db)
+       vec))
+
 (defn get-generation [generation-num]
   {:pre  [(s/valid? int? generation-num)]
    :post [(s/valid? (s/coll-of ::individual :kind vector?) %)]}
