@@ -50,6 +50,10 @@
 
 (comment
 
+  (def social-id (social/debut (bio/spawn-random-individual)))
+
+  (social/get-fitness {::m/social-id social-id})
+
   (time (bio/spawn-random-individual))
   ;; 0.15 msecs
 

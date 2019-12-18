@@ -49,7 +49,9 @@
   )
 
 (defn- save-img [img-name ^BufferedImage img]
-  (ImageIO/write img "png" (File. (format "output/%s.png" img-name))))
+  (let [filename (format "output/%s.png" img-name)]
+    (ImageIO/write img "png" (File. filename))
+    filename))
 
 ;; https://stackoverflow.com/a/4216635
 (defn- scale-up [^BufferedImage bi]

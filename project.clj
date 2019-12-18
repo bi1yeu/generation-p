@@ -8,6 +8,7 @@
                  [org.clojure/data.generators "0.1.2"]
                  [org.xerial/sqlite-jdbc "3.28.0"]
                  [org.clojure/java.jdbc "0.7.10"]
+                 [twitter-api "1.8.0"]
 
                  ]
   :main ^:skip-aot generation-p.core
