@@ -61,9 +61,19 @@
   ([population cutoff]
    ;; individuals in `population` should already have an accumulated normalized
    ;; fitness and be sorted in ascending order
-   (->> population
-        (filter #(>= (:acc-norm-fitness %) cutoff))
-        first)))
+   ;; note: there is an edge case where fewer than two individuals have any
+   ;; fitness at all; in that case just randomly pick a parent
+   (let [num-fit (reduce (fn [acc el]
+                           (if (> 0 (:acc-norm-fitness el))
+                             (inc acc)
+                             acc))
+                         0
+                         population)]
+     (if (< num-fit 2)
+       (apply data.gen/one-of population)
+       (->> population
+            (filter #(>= (:acc-norm-fitness %) cutoff))
+            first)))))
 
 (defn matchmake [population]
   ;; Fitness proportionate selection
