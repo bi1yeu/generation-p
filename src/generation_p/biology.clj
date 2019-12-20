@@ -192,24 +192,29 @@
 (defn- random-crossover-method []
   (data.gen/one-of ::m/crossover ::m/patch-crossover))
 
-;; TODO general refactoring
+(defn- crossover-n-vals []
+  (let [vec-width      (-> image/img-width
+                           (Math/pow 2)
+                           int)
+        half-vec-width (int (/ vec-width 2))]
+    (->> (range 1 (inc half-vec-width))
+         (filter #(zero? (mod vec-width %))))))
+
+(def ^:private crossover-n-vals-memo (memoize crossover-n-vals))
+
+(defn- patch-crossover-n-vals []
+  (let [half-width (/ image/img-width 2)]
+    (->> (range 1 (inc half-width))
+         (filter #(zero? (mod image/img-width %))))))
+
+(def ^:private patch-crossover-n-vals-memo (memoize patch-crossover-n-vals))
+
 (defn- random-crossover-params [crossover-method]
   (case crossover-method
     ::m/crossover
-    ;; TODO memoize this
-    {:n (let [vec-width      (-> image/img-width
-                                 (Math/pow 2)
-                                 int)
-              half-vec-width (int (/ vec-width 2))]
-          (->> (range 1 (inc half-vec-width))
-               (filter #(zero? (mod vec-width %)))
-               (apply data.gen/one-of)))}
+    {:n (apply data.gen/one-of (crossover-n-vals-memo))}
     ::m/patch-crossover
-    ;; TODO memoize this
-    {:n (let [half-width (/ image/img-width 2)]
-          (->> (range 1 (inc half-width))
-               (filter #(zero? (mod image/img-width %)))
-               (apply data.gen/one-of)))}))
+    {:n (apply data.gen/one-of (patch-crossover-n-vals-memo))}))
 
 (defn- crossover-method->fn [crossover-method crossover-params]
   (case crossover-method
