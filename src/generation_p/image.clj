@@ -79,9 +79,12 @@
      (.setPixels ^WritableRaster raster 0 0 width height (int-array pixel-vec))
      image)))
 
-(defn save-individual-as-image [individual]
-  (->> individual
-       ::m/chromosome
-       vec->image
-       scale-up
-       (save-img (::m/id individual))))
+(defn save-individual-as-image
+  ([individual]
+   (save-individual-as-image individual (::m/id individual)))
+  ([individual filename]
+   (->> individual
+        ::m/chromosome
+        vec->image
+        scale-up
+        (save-img filename))))
