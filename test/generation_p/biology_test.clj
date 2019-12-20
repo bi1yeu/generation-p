@@ -6,8 +6,6 @@
 
 (def ^:const rand-seed 666)
 
-;; TODO failing because img-width
-
 (deftest patch-crossover-test
   (with-redefs [data.gen/*rnd*  (java.util.Random. rand-seed)]
     (let [params  {:n 1}
