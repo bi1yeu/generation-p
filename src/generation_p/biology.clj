@@ -5,7 +5,8 @@
             [generation-p.image :as image]))
 
 (def ^:const desired-generation-population-count 60)
-(def ^:const crossover-mutation-rate 0.02)
+(def ^:const ^:private crossover-mutation-rate 0.0001)
+(def ^:const ^:private mutation-rate 0.0001)
 
 ;; width and height are desired dimensions of resultant image -- the return val
 ;; of this function is a 1D vector of size (* height width num-channels)
@@ -105,6 +106,22 @@
                           (recur (choose-parent))
                           p))]
     [parent0 parent1]))
+
+;; ==============================================================================
+;; Mutation
+;; ==============================================================================
+
+(defn- maybe-mutate-pixel [pixel]
+  (if (< (data.gen/float) mutation-rate)
+    (let [remaining-colors (remove (partial = (vec pixel)) image/palette)]
+      (apply data.gen/one-of remaining-colors))
+    pixel))
+
+(defn mutate [chromosome]
+  (->> chromosome
+       (partition image/num-channels)
+       (map maybe-mutate-pixel)
+       flatten))
 
 ;; ==============================================================================
 ;; Crossover
@@ -248,12 +265,14 @@
                            (and (not mutate-crossover?)
                                 (::m/crossover-params crossover-parent))
                            (random-crossover-params crossover-method))
-        crossover-fn      (crossover-method->fn crossover-method crossover-params)]
+        crossover-fn      (crossover-method->fn crossover-method crossover-params)
+        child-chromosome  (->> [(::m/chromosome parent0) (::m/chromosome parent1)]
+                               (apply crossover-fn)
+                               mutate)]
     (merge (spawn-random-individual)
-           {::m/generation-num (inc (::m/generation-num parent0))
-            ::m/chromosome (crossover-fn (::m/chromosome parent0)
-                                         (::m/chromosome parent1))
-            ::m/parent0-id (::m/id parent0)
-            ::m/parent1-id (::m/id parent1)
+           {::m/generation-num   (inc (::m/generation-num parent0))
+            ::m/chromosome       child-chromosome
+            ::m/parent0-id       (::m/id parent0)
+            ::m/parent1-id       (::m/id parent1)
             ::m/crossover-method crossover-method
             ::m/crossover-params crossover-params})))
