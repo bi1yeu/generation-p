@@ -59,6 +59,10 @@
 
   (def rando (bio/spawn-random-individual))
 
+  (dotimes [n 60]
+    (let [mutated (assoc rando ::m/chromosome (bio/mutate (::m/chromosome rando)))]
+      (generation-p.image/save-individual-as-image mutated (format "%d-%s.png" n (::m/id rando)))))
+
   (time
    (dotimes [n 1000]
      (m/latest-generation-num)
