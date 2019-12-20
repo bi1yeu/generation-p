@@ -38,9 +38,11 @@
                             population)]
     (pmap #(assoc %
                   :norm-fitness
-                  (/
-                   (:fitness %)
-                   fitness-sum))
+                  (if (zero? fitness-sum)
+                    0
+                    (/
+                     (:fitness %)
+                     fitness-sum)))
           population)))
 
 (defn- accumulate-normalized-fitnesses [population]
