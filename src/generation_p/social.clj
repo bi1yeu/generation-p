@@ -43,3 +43,17 @@
       (+ (* retweet-to-favorite-weighting
             (:retweet_count status))
          (:favorite_count status)))))
+
+(comment
+
+  ;; DANGER!!!
+  (defn- delete-status [individual]
+    (tw.api/statuses-destroy-id :oauth-creds
+                                creds
+                                :params {:id (::m/social-id individual)}))
+
+  (run! delete-status (m/get-generation 0))
+  ;; DANGER!!!
+
+
+  )
