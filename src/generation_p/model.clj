@@ -1,14 +1,13 @@
 (ns generation-p.model
   (:require [clojure.java.jdbc :as jdbc]
             [clojure.edn :as edn]
-            [clojure.spec.alpha :as s]
-            [generation-p.image :as image]))
+            [clojure.spec.alpha :as s]))
 
 (s/def ::id uuid?)
 (s/def ::social-id int?)
 (s/def ::generation-num int?)
-(s/def ::pixel (s/coll-of int? :count image/num-channels))
-(s/def ::chromosome (s/coll-of ::pixel :count (int (Math/pow image/img-width 2))))
+(s/def ::pixel (s/coll-of int?))
+(s/def ::chromosome (s/coll-of ::pixel))
 (s/def ::parent0-id (s/nilable uuid?))
 (s/def ::parent1-id (s/nilable uuid?))
 (s/def ::patch-crossover "patch-crossover")
@@ -43,7 +42,7 @@
    :subname     "db/database.db"})
 
 (def ^:const ^:private table-ddl
-  (jdbc/create-table-ddl :species
+  (jdbc/create-table-ddl :individuals
                          [[:id :text]
                           [:social_id :int]
                           [:generation_num :int]
@@ -57,8 +56,8 @@
 (defn create-db []
   (try (jdbc/db-do-commands db
                             [table-ddl
-                             "CREATE INDEX id_ix ON species ( id );"
-                             "CREATE INDEX generation_num_ix ON species ( generation_num );"])
+                             "CREATE INDEX id_ix ON individuals ( id );"
+                             "CREATE INDEX generation_num_ix ON individuals ( generation_num );"])
        (catch java.sql.BatchUpdateException e
          (println (.getMessage e)))))
 
@@ -74,7 +73,7 @@
   (-> individual
       (update ::chromosome vec)
       ns-keywords->field-names
-      (as-> <> (jdbc/insert! db :species <>)))
+      (as-> <> (jdbc/insert! db :individuals <>)))
   individual)
 
 (defn- munge-from-db [individual-record]
@@ -93,7 +92,7 @@
 (defn get-individual-by-id [individual-id]
   {:pre  [(s/valid? ::id individual-id)]
    :post [(s/valid? ::individual %)]}
-  (-> (jdbc/query db ["SELECT * FROM species WHERE id = ?"
+  (-> (jdbc/query db ["SELECT * FROM individuals WHERE id = ?"
                       individual-id])
       first
       munge-from-db))
@@ -102,19 +101,19 @@
 ;; some utility functions for experimentation
 (defn get-oldest-individual []
   {:post [(s/valid? ::individual %)]}
-  (-> (jdbc/query db ["SELECT * FROM species ORDER BY created_at ASC LIMIT 1"])
+  (-> (jdbc/query db ["SELECT * FROM individuals ORDER BY created_at ASC LIMIT 1"])
       first
       munge-from-db))
 
 (defn get-youngest-individual []
   {:post [(s/valid? ::individual %)]}
-  (-> (jdbc/query db ["SELECT * FROM species ORDER BY created_at DESC LIMIT 1"])
+  (-> (jdbc/query db ["SELECT * FROM individuals ORDER BY created_at DESC LIMIT 1"])
       first
       munge-from-db))
 
 (defn get-all-individuals []
   {:post [(s/valid? (s/coll-of ::individual :kind vector?) %)]}
-  (->> (jdbc/query db ["SELECT * FROM species ORDER BY created_at ASC"])
+  (->> (jdbc/query db ["SELECT * FROM individuals ORDER BY created_at ASC"])
        (map munge-from-db)
        vec))
 
@@ -123,7 +122,7 @@
    :post [(s/valid? (s/coll-of ::individual :kind vector?) %)]}
   (->>
    (jdbc/query db
-               ["SELECT * FROM species WHERE generation_num = ?"
+               ["SELECT * FROM individuals WHERE generation_num = ?"
                 generation-num])
    (pmap munge-from-db)
    vec))
@@ -131,7 +130,7 @@
 (defn latest-generation-num []
   {:post [(s/valid? (s/nilable int?) %)]}
   (let [resultset (jdbc/query db
-                              ["SELECT MAX(generation_num) latest_gen FROM species"])]
+                              ["SELECT MAX(generation_num) latest_gen FROM individuals"])]
     (or (:latest_gen (first resultset))
         0)))
 
@@ -141,6 +140,6 @@
   {:post [(s/valid? (s/nilable int?) %)]}
   (let [resultset
         (jdbc/query db
-                    ["SELECT COUNT(*) cnt FROM species WHERE generation_num = (SELECT MAX(generation_num) FROM species)"])]
+                    ["SELECT COUNT(*) cnt FROM individuals WHERE generation_num = (SELECT MAX(generation_num) FROM individuals)"])]
     (or (:cnt (first resultset))
         0)))
