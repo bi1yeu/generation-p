@@ -9,15 +9,14 @@
 (def ^:const ^:private mutation-rate 0.0001)
 
 ;; width and height are desired dimensions of resultant image -- the return val
-;; of this function is a 1D vector of size (* height width num-channels)
+;; of this function is a 1D vector of size (* height width)
 (defn- random-chromosome
   ([]
    (random-chromosome image/img-width))
   ([width]
    (-> width
        (Math/pow 2)
-       (take (repeatedly #(apply data.gen/one-of image/palette)))
-       flatten)))
+       (take (repeatedly #(apply data.gen/one-of image/palette))))))
 
 (defn spawn-random-individual []
   {::m/id               (java.util.UUID/randomUUID)
@@ -119,9 +118,7 @@
 
 (defn mutate [chromosome]
   (->> chromosome
-       (partition image/num-channels)
-       (map maybe-mutate-pixel)
-       flatten))
+       (map maybe-mutate-pixel)))
 
 ;; ==============================================================================
 ;; Crossover
@@ -130,21 +127,19 @@
 ;; like k-point crossover, but instead of k points, (randomly) crossover after
 ;; runs of length n
 (defn- crossover [{:keys [n]} parent0 parent1]
-  (let [parent0-partitioned (partition (* n image/num-channels) parent0)
-        parent1-partitioned (partition (* n image/num-channels) parent1)]
-    (flatten
+  (let [parent0-partitioned (partition n parent0)
+        parent1-partitioned (partition n parent1)]
+    (apply
+     concat
      (for [i (range (count parent0-partitioned))]
        (if (data.gen/boolean)
          (nth parent0-partitioned i)
          (nth parent1-partitioned i))))))
 
-;; get the coords of n patches that evenly cover a width x height 2D array,
-;; taking image/num-channels into account
+;; get the coords of n patches that evenly cover a width x height 2D array
 ;; e.g.
 ;;
-;; an image that is 2x2 will have a width of 6 (2 pixels * 3 color channels)
-;;
-;; (patches 1 6 2)
+;; (patches 1 3 2)
 ;;
 ;; (([0 0] [0 1] [0 2])  ;; first patch is nw pixel
 ;;  ([0 3] [0 4] [0 5])  ;; second patch is ne pixel
@@ -152,7 +147,7 @@
 ;;  ([1 3] [1 4] [1 5])) ;; fourth patch is se pixel
 (defn- patches [n width height]
   (for [patch-indices-i (partition n (range height))
-        patch-indices-j (partition (* n image/num-channels) (range width))]
+        patch-indices-j (partition n (range width))]
     (for [i patch-indices-i
           j patch-indices-j]
       [i j])))
@@ -165,7 +160,7 @@
        (pmap vec)
        vec))
 
-;; TODO refactor
+;; TODO refactor?
 ;; This is a specialized crossover approach, which treats 2D patches of size nxn
 ;; as genes in the chromosome/individual. Given two parents, these patches are
 ;; randomly exchanged to form a new individual.
@@ -187,7 +182,7 @@
 ;; 1 1 0
 ;; 1 0 1
 
-(defn patch-crossover
+(defn- patch-crossover
   [{:keys [n]} parent0 parent1]
   ;; loop over the reshaped vector, patch by patch, taking a given patch from
   ;; either parent randomly
@@ -195,13 +190,12 @@
   ;; note2: assumes square image
   (let [width      (-> parent0
                        count
-                       (/ image/num-channels)
                        Math/sqrt
-                       (* image/num-channels)
                        int)
         parent0-2d (reshape width parent0)
         parent1-2d (reshape width parent1)]
-    (flatten
+    (apply
+     concat
      (loop [[patch & rest-patches] (patches-memo n
                                                  (count (first parent0-2d))
                                                  (count parent0-2d))

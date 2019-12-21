@@ -12,7 +12,7 @@
 (def ^:const num-channels 3)
 
 ;; https://lospec.com/palette-list/japanese-woodblock
-(def ^:const palette--japanesewoodblock
+(def ^:const ^:private palette--japanesewoodblock
   [
    [0x2b 0x28 0x21]
    ;; [0x62 0x4c 0x3c]
@@ -34,7 +34,7 @@
   ;; some utility functions used for experimentation
 
   (defn- solid-gray-vec [width height val]
-    (repeat (* width height num-channels) val))
+    (partition num-channels (repeat (* width height num-channels) val)))
 
   (defn- black-vec [width height]
     (solid-gray-vec width height 0))
@@ -42,9 +42,7 @@
   (defn- white-vec [width height]
     (solid-gray-vec width height 255))
 
-  (generation-p.social/get-fitness (assoc (generation-p.biology/spawn-random-individual)
-                                          ::m/chromosome
-                                          (black-vec img-width img-width 111)))
+  (save-img "the-file" (scale-up (vec->image (black-vec 32 32))))
 
   )
 
@@ -68,7 +66,6 @@
    ;; assume square image
    (let [dim (-> pixel-vec
                  count
-                 (/ num-channels)
                  Math/sqrt
                  int)]
      (vec->image pixel-vec dim dim)))
@@ -76,7 +73,7 @@
    ;; via https://stackoverflow.com/a/125013/1181141
    (let [image  (BufferedImage. width height BufferedImage/TYPE_INT_RGB)
          raster (.getRaster image)]
-     (.setPixels ^WritableRaster raster 0 0 width height (int-array pixel-vec))
+     (.setPixels ^WritableRaster raster 0 0 width height (int-array (flatten pixel-vec)))
      image)))
 
 (defn save-individual-as-image

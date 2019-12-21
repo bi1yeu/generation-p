@@ -1,12 +1,14 @@
 (ns generation-p.model
   (:require [clojure.java.jdbc :as jdbc]
             [clojure.edn :as edn]
-            [clojure.spec.alpha :as s]))
+            [clojure.spec.alpha :as s]
+            [generation-p.image :as image]))
 
 (s/def ::id uuid?)
 (s/def ::social-id int?)
 (s/def ::generation-num int?)
-(s/def ::chromosome (s/coll-of int?))
+(s/def ::pixel (s/coll-of int? :count image/num-channels))
+(s/def ::chromosome (s/coll-of ::pixel :count (int (Math/pow image/img-width 2))))
 (s/def ::parent0-id (s/nilable uuid?))
 (s/def ::parent1-id (s/nilable uuid?))
 (s/def ::patch-crossover "patch-crossover")
