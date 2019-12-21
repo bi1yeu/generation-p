@@ -1,10 +1,11 @@
 (ns generation-p.social
-  (:require [generation-p.model :as m]
-            [generation-p.image :as image]
+  (:require [clojure.java.io :as io]
             [twitter.core :as tw.core]
             [twitter.oauth :as tw.oauth]
             [twitter.api.restful :as tw.api]
-            [twitter.request :as tw.request]))
+            [twitter.request :as tw.request]
+            [generation-p.model :as m]
+            [generation-p.image :as image]))
 
 (def ^:const ^:private retweet-to-favorite-weighting 30)
 
@@ -37,6 +38,7 @@
                       creds
                       :body [(tw.request/file-body-part filename)
                              (tw.request/status-body-part status-msg)])]
+      (io/delete-file filename)
       (-> status :body :id))))
 
 (defn get-fitness [individual]
