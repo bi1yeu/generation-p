@@ -16,13 +16,14 @@
                              (System/getenv "ACCESS_TOKEN")
                              (System/getenv "SECRET_KEY")))
 
-;; TODO API error handling
-
 (defn- make-status-message [individual]
-  (let [gen-num     (::m/generation-num individual)
-        id          (::m/id individual)]
-    (format "%s | gen %s" id gen-num)))
+  (format "generation %s\ng%s\nparents\n  - %s\n  - %s"
+          (::m/generation-num individual)
+          (::m/id individual)
+          (::m/parent0-id individual)
+          (::m/parent1-id individual)))
 
+;; TODO API error handling
 (defn debut [individual]
   (if (not (is-prod?))
     (rand-int 100000)
@@ -55,7 +56,9 @@
                                 creds
                                 :params {:id (::m/social-id individual)}))
 
-  (run! destroy-status (m/get-generation 3))
+  (dotimes [n 0]
+    (run! destroy-status (m/get-generation n)))
+
   ;; DANGER!!!
 
 
