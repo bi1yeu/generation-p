@@ -26,7 +26,8 @@
 ;; TODO API error handling
 (defn debut [individual]
   (if (not (is-prod?))
-    (rand-int 100000)
+    (do (image/save-individual-as-image individual)
+        (rand-int 100000))
     (let [filename   (image/save-individual-as-image individual)
           status-msg (make-status-message individual)
           ;; note: the media-upload-chunked function in the docs isn't published

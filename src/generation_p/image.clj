@@ -1,7 +1,7 @@
 (ns generation-p.image
-  (:require [generation-p.model :as m])
+  (:require [clojure.java.io :as io]
+            [generation-p.model :as m])
   (:import
-   (java.io File)
    (java.awt.image AffineTransformOp BufferedImage WritableRaster)
    (java.awt.geom AffineTransform)
    (javax.imageio ImageIO)))
@@ -46,9 +46,9 @@
 
   )
 
-(defn- save-img [img-name ^BufferedImage img]
+(defn- save-img [img-name ^BufferedImage bi]
   (let [filename (format "output/%s.png" img-name)]
-    (ImageIO/write img "png" (File. filename))
+    (ImageIO/write bi "png" (io/file filename))
     filename))
 
 ;; https://stackoverflow.com/a/4216635

@@ -7,7 +7,7 @@
 (def ^:const rand-seed 666)
 
 (deftest patch-crossover-test
-  (with-redefs [data.gen/*rnd* (java.util.Random. rand-seed)]
+  (binding [data.gen/*rnd* (java.util.Random. rand-seed)]
     (testing "single pixel patch crossover"
       (let [params  {:n 1}
             parent0 [[0 0 0] [0 0 0]
@@ -34,7 +34,7 @@
                (#'bio/patch-crossover params parent0 parent1)))))))
 
 (deftest crossover-test
-  (with-redefs [data.gen/*rnd* (java.util.Random. rand-seed)]
+  (binding [data.gen/*rnd* (java.util.Random. rand-seed)]
     (let [parent0 [[0 0 0] [0 0 0]
                    [0 0 0] [0 0 0]]
           parent1 [[1 1 1] [1 1 1]
