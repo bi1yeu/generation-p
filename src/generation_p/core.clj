@@ -4,15 +4,6 @@
             [generation-p.social :as social]
             [generation-p.biology :as bio]))
 
-;; Genetic Algorithm Pixel Art Bot
-;; Solving an opimtization problem: trying to maximize number of impressions
-
-;; resources
-;; https://en.wikipedia.org/wiki/Genetic_algorithm
-;; https://en.wikipedia.org/wiki/Selection_(genetic_algorithm)
-;; https://en.wikipedia.org/wiki/Interactive_evolutionary_computation
-;; https://en.wikipedia.org/wiki/Evolutionary_art
-
 (defmulti build-individual identity)
 
 (defmethod build-individual 0 [_]
