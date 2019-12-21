@@ -1,6 +1,7 @@
 (ns generation-p.social
   (:require [generation-p.model :as m]
             [generation-p.image :as image]
+            [twitter.core :as tw.core]
             [twitter.oauth :as tw.oauth]
             [twitter.api.restful :as tw.api]
             [twitter.request :as tw.request]))
@@ -48,6 +49,10 @@
       (+ (* retweet-to-favorite-weighting
             (:retweet_count status))
          (:favorite_count status)))))
+
+;; via https://github.com/adamwynne/twitter-api#notes-on-making-api-calls
+(defn cleanup-connection []
+  (http.async.client/close (tw.core/default-client)))
 
 (comment
 

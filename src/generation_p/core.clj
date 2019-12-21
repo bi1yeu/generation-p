@@ -29,7 +29,8 @@
           new-individual (build-individual curr-gen-num)
           social-id      (social/debut new-individual)]
       (m/create-individual (assoc new-individual ::m/social-id social-id))
-      (println (format "Created individual %s" (::m/id new-individual))))))
+      (println (format "Created individual %s" (::m/id new-individual)))
+      (social/cleanup-connection))))
 
 (comment
 
