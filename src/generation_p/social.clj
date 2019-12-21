@@ -5,13 +5,11 @@
             [twitter.api.restful :as tw.api]
             [twitter.request :as tw.request]))
 
-;; via https://github.com/adamwynne/twitter-api
 (def ^:const ^:private retweet-to-favorite-weighting 30)
 
-;; TODO make a testing env or something
-(def mock-twitter-api true)
+(defn- is-prod? [] (= "prod" (System/getenv "ENV")))
 
-;; https://twitter.com/generationp3
+;; via https://github.com/adamwynne/twitter-api
 (def ^:private creds
   (tw.oauth/make-oauth-creds (System/getenv "CONSUMER_KEY")
                              (System/getenv "CONSUMER_SECRET")
@@ -19,7 +17,7 @@
                              (System/getenv "SECRET_KEY")))
 
 (defn debut [individual]
-  (if mock-twitter-api
+  (if (not (is-prod?))
     (rand-int 100000)
     (let [filename   (image/save-individual-as-image individual)
           status-msg (format "gen %d. %s"
@@ -34,7 +32,7 @@
       (-> status :body :id))))
 
 (defn get-fitness [individual]
-  (if mock-twitter-api
+  (if (not (is-prod?))
     (rand-int 20)
     (let [status (-> (tw.api/statuses-show-id :oauth-creds
                                               creds
