@@ -30,22 +30,6 @@
 
 (def ^:const palette palette--japanesewoodblock)
 
-(comment
-  ;; some utility functions used for experimentation
-
-  (defn- solid-gray-vec [width height val]
-    (partition num-channels (repeat (* width height num-channels) val)))
-
-  (defn- black-vec [width height]
-    (solid-gray-vec width height 0))
-
-  (defn- white-vec [width height]
-    (solid-gray-vec width height 255))
-
-  (save-img "the-file" (scale-up (vec->image (black-vec 32 32))))
-
-  )
-
 (defn- save-img [img-name ^BufferedImage bi]
   (let [filename (format "output/%s.png" img-name)]
     (ImageIO/write bi "png" (io/file filename))
@@ -85,3 +69,20 @@
         vec->image
         scale-up
         (save-img filename))))
+
+(comment
+  ;; some utility functions used for experimentation
+
+  (defn- solid-gray-vec [width height val]
+    (partition num-channels (repeat (* width height num-channels) val)))
+
+  (defn- black-vec [width height]
+    (solid-gray-vec width height 0))
+
+  (defn- white-vec [width height]
+    (solid-gray-vec width height 255))
+
+  (save-img "black-img" (scale-up (vec->image (black-vec 32 32))))
+  (save-img "white-img" (scale-up (vec->image (white-vec 32 32))))
+
+  )

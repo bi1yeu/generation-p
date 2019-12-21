@@ -1,8 +1,7 @@
 (ns generation-p.biology-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is testing]]
             [clojure.data.generators :as data.gen]
-            [generation-p.biology :as bio]
-            [generation-p.image :as image]))
+            [generation-p.biology :as bio]))
 
 (def ^:const rand-seed 666)
 

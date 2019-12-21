@@ -18,7 +18,7 @@
         [parent0 parent1] (bio/matchmake prev-gen)]
     (bio/breed parent0 parent1)))
 
-(defn -main [& args]
+(defn -main [& _]
   (binding [data.gen/*rnd* (java.util.Random.)]
     (m/create-db)
     (let [latest-gen-num (m/latest-generation-num)
