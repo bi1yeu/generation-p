@@ -16,13 +16,18 @@
                              (System/getenv "ACCESS_TOKEN")
                              (System/getenv "SECRET_KEY")))
 
+;; TODO API error handling
+
+(defn- make-status-message [individual]
+  (let [gen-num     (::m/generation-num individual)
+        id          (::m/id individual)]
+    (format "%s | gen %s" id gen-num)))
+
 (defn debut [individual]
   (if (not (is-prod?))
     (rand-int 100000)
     (let [filename   (image/save-individual-as-image individual)
-          status-msg (format "gen %d. %s"
-                             (::m/generation-num individual)
-                             (::m/id individual))
+          status-msg (make-status-message individual)
           ;; note: the media-upload-chunked function in the docs isn't published
           status     (tw.api/statuses-update-with-media
                       :oauth-creds
@@ -45,12 +50,12 @@
 (comment
 
   ;; DANGER!!!
-  (defn- delete-status [individual]
+  (defn- destroy-status [individual]
     (tw.api/statuses-destroy-id :oauth-creds
                                 creds
                                 :params {:id (::m/social-id individual)}))
 
-  (run! delete-status (m/get-generation 0))
+  (run! destroy-status (m/get-generation 3))
   ;; DANGER!!!
 
 
