@@ -1,9 +1,10 @@
 (ns generation-p.core
   (:gen-class)
-  (:require [generation-p.model :as m]
+  (:require [clojure.data.generators :as data.gen]
+            [clojure.tools.logging :as log]
+            [generation-p.model :as m]
             [generation-p.social :as social]
-            [generation-p.biology :as bio]
-            [clojure.data.generators :as data.gen]))
+            [generation-p.biology :as bio]))
 
 (defmulti build-individual identity)
 
@@ -27,10 +28,13 @@
                            latest-gen-num
                            (inc latest-gen-num))
           new-individual (build-individual curr-gen-num)
+          _              (log/infof "Generated individual %s" (::m/id new-individual))
           social-id      (social/debut new-individual)]
+      (log/infof "Posted individual %s" (::m/id new-individual))
       (m/create-individual (assoc new-individual ::m/social-id social-id))
-      (println (format "Created individual %s" (::m/id new-individual)))
-      (social/cleanup-connection))))
+      (log/infof "Saved individual %s" (::m/id new-individual))
+      (social/cleanup-connection)
+      (log/info "Exiting"))))
 
 (comment
 

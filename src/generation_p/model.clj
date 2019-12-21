@@ -1,7 +1,8 @@
 (ns generation-p.model
   (:require [clojure.java.jdbc :as jdbc]
             [clojure.edn :as edn]
-            [clojure.spec.alpha :as s]))
+            [clojure.spec.alpha :as s]
+            [clojure.tools.logging :as log]))
 
 (s/def ::id uuid?)
 (s/def ::social-id int?)
@@ -57,9 +58,10 @@
   (try (jdbc/db-do-commands db
                             [table-ddl
                              "CREATE INDEX id_ix ON individuals ( id );"
-                             "CREATE INDEX generation_num_ix ON individuals ( generation_num );"])
+                             "CREATE INDEX generation_num_ix
+                                ON individuals ( generation_num );"])
        (catch java.sql.BatchUpdateException e
-         (println (.getMessage e)))))
+         (log/warn (.getMessage e)))))
 
 (defn- ns-keywords->field-names [individual]
   (clojure.set/rename-keys individual (clojure.set/map-invert key-map)))
@@ -92,28 +94,37 @@
 (defn get-individual-by-id [individual-id]
   {:pre  [(s/valid? ::id individual-id)]
    :post [(s/valid? ::individual %)]}
-  (-> (jdbc/query db ["SELECT * FROM individuals WHERE id = ?"
+  (-> (jdbc/query db ["SELECT *
+                       FROM individuals
+                       WHERE id = ?"
                       individual-id])
       first
       munge-from-db))
 
-
 ;; some utility functions for experimentation
 (defn get-oldest-individual []
   {:post [(s/valid? ::individual %)]}
-  (-> (jdbc/query db ["SELECT * FROM individuals ORDER BY created_at ASC LIMIT 1"])
+  (-> (jdbc/query db ["SELECT *
+                       FROM individuals
+                       ORDER BY created_at ASC
+                       LIMIT 1"])
       first
       munge-from-db))
 
 (defn get-youngest-individual []
   {:post [(s/valid? ::individual %)]}
-  (-> (jdbc/query db ["SELECT * FROM individuals ORDER BY created_at DESC LIMIT 1"])
+  (-> (jdbc/query db ["SELECT *
+                       FROM individuals
+                       ORDER BY created_at DESC
+                       LIMIT 1"])
       first
       munge-from-db))
 
 (defn get-all-individuals []
   {:post [(s/valid? (s/coll-of ::individual :kind vector?) %)]}
-  (->> (jdbc/query db ["SELECT * FROM individuals ORDER BY created_at ASC"])
+  (->> (jdbc/query db ["SELECT *
+                        FROM individuals
+                        ORDER BY created_at ASC"])
        (map munge-from-db)
        vec))
 
@@ -122,7 +133,9 @@
    :post [(s/valid? (s/coll-of ::individual :kind vector?) %)]}
   (->>
    (jdbc/query db
-               ["SELECT * FROM individuals WHERE generation_num = ?"
+               ["SELECT *
+                 FROM individuals
+                 WHERE generation_num = ?"
                 generation-num])
    (pmap munge-from-db)
    vec))
@@ -130,7 +143,8 @@
 (defn latest-generation-num []
   {:post [(s/valid? (s/nilable int?) %)]}
   (let [resultset (jdbc/query db
-                              ["SELECT MAX(generation_num) latest_gen FROM individuals"])]
+                              ["SELECT MAX(generation_num) latest_gen
+                                FROM individuals"])]
     (or (:latest_gen (first resultset))
         0)))
 
@@ -140,6 +154,9 @@
   {:post [(s/valid? (s/nilable int?) %)]}
   (let [resultset
         (jdbc/query db
-                    ["SELECT COUNT(*) cnt FROM individuals WHERE generation_num = (SELECT MAX(generation_num) FROM individuals)"])]
+                    ["SELECT COUNT(*) cnt
+                      FROM individuals
+                      WHERE generation_num = (SELECT MAX(generation_num)
+                                              FROM individuals)"])]
     (or (:cnt (first resultset))
         0)))

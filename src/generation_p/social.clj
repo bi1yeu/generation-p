@@ -52,7 +52,8 @@
 
 ;; via https://github.com/adamwynne/twitter-api#notes-on-making-api-calls
 (defn cleanup-connection []
-  (http.async.client/close (tw.core/default-client)))
+  (when (is-prod?)
+    (http.async.client/close (tw.core/default-client))))
 
 (comment
 
