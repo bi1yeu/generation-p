@@ -39,8 +39,8 @@
           parent1 [[1 1 1] [1 1 1]
                    [1 1 1]  [1 1 1]]]
       (testing "single pixel crossover"
-        (is (= [[0 0 0] [1 1 1]
-                [0 0 0] [1 1 1]]
+        (is (= [[1 1 1] [1 1 1]
+                [1 1 1] [0 0 0]]
                (#'bio/crossover {:n 1} parent0 parent1))))
       (testing "multi pixel crossover"
         (is (= [[0 0 0] [0 0 0]

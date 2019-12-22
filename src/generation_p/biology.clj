@@ -132,9 +132,9 @@
     (apply
      concat
      (for [i (range (count parent0-partitioned))]
-       (if (data.gen/boolean)
-         (nth parent0-partitioned i)
-         (nth parent1-partitioned i))))))
+       (data.gen/one-of
+        (nth parent0-partitioned i)
+        (nth parent1-partitioned i))))))
 
 ;; get the coords of n patches that evenly cover a width x height 2D array
 ;; e.g.
