@@ -116,7 +116,7 @@
       (apply data.gen/one-of remaining-colors))
     pixel))
 
-(defn mutate [chromosome]
+(defn- mutate [chromosome]
   (->> chromosome
        (map maybe-mutate-pixel)))
 
@@ -136,15 +136,21 @@
         (nth parent0-partitioned i)
         (nth parent1-partitioned i))))))
 
-;; get the coords of n patches that evenly cover a width x height 2D array
-;; e.g.
+;; get the coords of n x n sized patches that evenly cover a width x height 2D
+;; array, e.g.:
 ;;
-;; (patches 1 3 2)
+;; (patches 2 4 4)
 ;;
-;; (([0 0] [0 1] [0 2])  ;; first patch is nw pixel
-;;  ([0 3] [0 4] [0 5])  ;; second patch is ne pixel
-;;  ([1 0] [1 1] [1 2])  ;; third patch is sw pixel
-;;  ([1 3] [1 4] [1 5])) ;; fourth patch is se pixel
+;; nw nw | ne ne
+;; nw nw | ne ne
+;; -------------
+;; sw sw | se se
+;; sw sw | se se
+;;
+;; (([0 0] [0 1] [1 0] [1 1])  NW patch
+;;  ([0 2] [0 3] [1 2] [1 3])  NE patch
+;;  ([2 0] [2 1] [3 0] [3 1])  SW patch
+;;  ([2 2] [2 3] [3 2] [3 3])) SE patch
 (defn- patches [n width height]
   (for [patch-indices-i (partition n (range height))
         patch-indices-j (partition n (range width))]
