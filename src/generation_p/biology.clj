@@ -8,8 +8,8 @@
 (def ^:const ^:private crossover-mutation-rate 0.0001)
 (def ^:const ^:private mutation-rate 0.0001)
 
-;; width and height are desired dimensions of resultant image -- the return val
-;; of this function is a 1D vector of size (* height width)
+;; width is desired dimensions of resultant square image -- the return val of
+;; this function is a 1D vector of size width^2
 (defn- random-chromosome
   ([]
    (random-chromosome image/img-width))
