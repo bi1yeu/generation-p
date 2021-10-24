@@ -19,7 +19,7 @@
                              (System/getenv "SECRET_KEY")))
 
 (defn- make-status-message [individual]
-  (format "generation %s\ng%s\nparents\n  - %s\n  - %s"
+  (format "generation %s\n%s\nparents\n  - %s\n  - %s"
           (::m/generation-num individual)
           (::m/id individual)
           (::m/parent0-id individual)
